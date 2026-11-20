@@ -88,7 +88,7 @@ def get_audio(sumber: str, cache: Path, cookies: str = None, args_judul: str = N
             "Solusi:\n"
             "1. Gunakan cookies browser: --cookies-from-browser chrome (atau edge / firefox)\n"
             "2. Atau download manual lagu tersebut (mp3/wav) lalu jalankan dengan file lokal:\n"
-            "   python lirik2ttml.py namalagu.mp3 --lirik namalagu.txt"
+            "   python lyric2ttml.py namalagu.mp3 --lyric namalagu.txt"
         )
 
     title = info.get("title") or info["id"]

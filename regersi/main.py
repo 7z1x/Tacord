@@ -13,7 +13,7 @@ from regersi.lyrics import read_lyrics
 from regersi.ttml import build_ttml, fmt_time, tidy
 
 
-def resolve_lirik(arg: str) -> Path:
+def resolve_lyric(arg: str) -> Path:
     p = Path(arg)
     if p.is_file():
         return p
@@ -38,7 +38,7 @@ def run():
         sys.exit("--rapikan butuh konfigurasi LLM. Copy .env.example jadi .env lalu isi LLM_API_KEY dan LLM_MODEL.")
 
     cache = Path(args.cache) if args.cache else BASE / "audio"
-    lirik_path = resolve_lirik(args.lirik) if args.lirik else None
+    lyric_path = resolve_lyric(args.lyric) if args.lyric else None
 
     audio, judul, work = get_audio(args.sumber, cache, cookies=args.cookies, args_judul=args.judul)
     print(f"Audio siap: {audio} ({judul})")
@@ -62,14 +62,14 @@ def run():
         sys.exit(f"Gagal memuat model Whisper '{args.model}': {e}")
 
     mentah = None
-    if lirik_path:
-        lyrics = read_lyrics(lirik_path)
+    if lyric_path:
+        lyrics = read_lyrics(lyric_path)
         if not lyrics:
             sys.exit("File lirik kosong.")
         if any("(?)" in l for l in lyrics):
             print("PERINGATAN: masih ada tanda (?) di file lirik dan akan ikut masuk ke TTML. "
                   "Hapus setelah kamu cek.")
-        print(f"Menyelaraskan {len(lyrics)} baris dari {lirik_path.name} dengan audio...")
+        print(f"Menyelaraskan {len(lyrics)} baris dari {lyric_path.name} dengan audio...")
         lines = align(model, audio, lyrics, args.bahasa, prompt=args.prompt)
     else:
         print("Tidak ada lirik, AI menebak teks dari audio (hasil = draft)...")
@@ -95,7 +95,7 @@ def run():
     except Exception as e:
         sys.exit(f"Gagal merapikan hasil: {e}")
 
-    nama = re.sub(r'[\\/:*?"<>|]+', "", judul).strip() or "lirik"
+    nama = re.sub(r'[\\/:*?"<>|]+', "", judul).strip() or "lyric"
     out = resolve_out(args.out, nama)
     out.parent.mkdir(parents=True, exist_ok=True)
     try:
@@ -104,7 +104,7 @@ def run():
         sys.exit(f"Gagal menulis file TTML: {e}")
     print(f"Selesai: {out} ({len(lines)} baris, sampai {fmt_time(lines[-1][1])})")
 
-    if not lirik_path:
+    if not lyric_path:
         draft = BASE / "lyric" / f"{out.stem}.draft.txt"
         draft.parent.mkdir(parents=True, exist_ok=True)
         draft.write_text("\n".join(t for _, _, t in lines) + "\n", encoding="utf-8")
@@ -116,4 +116,4 @@ def run():
         ragu = sum("(?)" in t for _, _, t in lines)
         if ragu:
             print(f"{ragu} baris bertanda (?): dengarkan lagi, perbaiki, lalu hapus tandanya.")
-        print(f'Koreksi teksnya, lalu jalankan lagi dengan: --lirik "{draft.name}"')
+        print(f'Koreksi teksnya, lalu jalankan lagi dengan: --lyric "{draft.name}"')

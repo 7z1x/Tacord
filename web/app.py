@@ -86,13 +86,13 @@ def run_job(data):
     try:
         cmd = [
             sys.executable,
-            str(BASE / "regersi" / "lirik2ttml.py"),
+            str(BASE / "regersi" / "lyric2ttml.py"),
             data["sumber"],
             "--model", data.get("model", "large-v3-turbo"),
         ]
 
-        if data.get("lirik"):
-            cmd.extend(["--lirik", data["lirik"]])
+        if data.get("lyric"):
+            cmd.extend(["--lyric", data["lyric"]])
 
         if data.get("pisah_vokal"):
             cmd.append("--pisah-vokal")
@@ -196,8 +196,8 @@ def api_results():
     return jsonify(list_results_info())
 
 
-@app.route("/api/upload-lirik", methods=["POST"])
-def upload_lirik():
+@app.route("/api/upload-lyric", methods=["POST"])
+def upload_lyric():
     if "file" not in request.files:
         return jsonify({"ok": False, "error": "Tidak ada file yang diunggah."})
 

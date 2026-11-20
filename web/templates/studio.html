@@ -52,7 +52,7 @@
                     {% for name in lyrics %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
                     <option value="__import__">Import file lirik...</option>
                 </select>
-                <input id="lirikFile" type="file" accept=".txt,.lrc" class="hidden">
+                <input id="lyricFile" type="file" accept=".txt,.lrc" class="hidden">
                 <p id="err-lirik" class="hidden text-sm text-err">Pilih file lirik dulu.</p>
                 <p id="hint-lirik" class="text-sm text-muted">Tanpa lirik = Whisper menebak teks sendiri (hasil draft, bisa dikoreksi nanti).</p>
                 <div id="uploadStatus" class="hidden items-center gap-2 text-sm" role="status">

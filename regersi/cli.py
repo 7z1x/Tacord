@@ -6,7 +6,7 @@ def parser():
         description="Link YouTube / file audio -> lirik ber-timestamp -> .ttml untuk Spicetify"
     )
     ap.add_argument("sumber", help="link YouTube, atau path file audio (mp3/wav/m4a)")
-    ap.add_argument("-l", "--lirik",
+    ap.add_argument("-l", "--lyric",
                     help="file lirik .txt, satu baris per baris lirik (path, atau nama file di folder lyric/)")
     ap.add_argument("-o", "--out",
                     help="nama file output .ttml (tanpa folder = disimpan di ttml/)")
@@ -18,7 +18,7 @@ def parser():
     ap.add_argument("--offset", type=float, default=0.0,
                     help="geser semua waktu, dalam detik (mis. -2.5 atau 1.2)")
     ap.add_argument("--rapikan", action="store_true",
-                    help="rapikan draft lirik lewat GLM/Kimi via 9router (hanya saat tanpa --lirik)")
+                    help="rapikan draft lirik lewat GLM/Kimi via 9router (hanya saat tanpa --lyric)")
     ap.add_argument("--cookies-from-browser", dest="cookies", default=None,
                     help="ambil cookies dari browser (contoh: chrome, edge, firefox, brave) jika YouTube memblokir")
     ap.add_argument("--cache", default=None,

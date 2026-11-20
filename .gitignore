@@ -13,5 +13,5 @@ audio/*
 !audio/README.md
 ttml/*
 !ttml/README.md
-lirik/*
-!lirik/README.md
+lyric/*
+!lyric/README.md

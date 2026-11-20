@@ -1,5 +1,5 @@
 const $ = (id) => document.getElementById(id);
-const mediaUrl = $('media-url'), lyricSelect = $('lyric-select'), lirikFile = $('lirikFile');
+const mediaUrl = $('media-url'), lyricSelect = $('lyric-select'), lyricFile = $('lyricFile');
 const btnGenerate = $('btnGenerate'), terminalBox = $('terminalBox');
 let pollTimer = null, running = false, rendered = 0, lineTimes = [], startedAt = 0, touched = { media: false, lirik: false };
 const ALLOWED_LYRIC_EXT = new Set(['.txt', '.lrc']);
@@ -69,7 +69,7 @@ lyricSelect.addEventListener('focus', () => { lastLyric = lyricSelect.value; });
 lyricSelect.addEventListener('change', () => {
     if (lyricSelect.value === '__import__') {
         lyricSelect.value = lastLyric && lastLyric !== '__import__' ? lastLyric : '__none__';
-        lirikFile.click();
+        lyricFile.click();
     }
     updateGenerateState();
 });
@@ -78,7 +78,7 @@ async function uploadLyricFile(file) {
     fd.append('file', file);
     showUpload('busy', 'Mengunggah ' + file.name + '...');
     try {
-        const json = await (await fetch('/api/upload-lirik', { method: 'POST', body: fd })).json();
+        const json = await (await fetch('/api/upload-lyric', { method: 'POST', body: fd })).json();
         if (!json.ok) { showUpload('err', 'Gagal: ' + json.error); return; }
         updateLyricOptions(json.lyrics, json.filename);
         touched.lirik = true;
@@ -88,10 +88,10 @@ async function uploadLyricFile(file) {
     }
     updateGenerateState();
 }
-lirikFile.addEventListener('change', async () => {
-    if (!lirikFile.files.length) return;
-    await uploadLyricFile(lirikFile.files[0]);
-    lirikFile.value = '';
+lyricFile.addEventListener('change', async () => {
+    if (!lyricFile.files.length) return;
+    await uploadLyricFile(lyricFile.files[0]);
+    lyricFile.value = '';
 });
 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach((ev) => {
     lyricSelect.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); });
