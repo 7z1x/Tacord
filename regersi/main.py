@@ -2,13 +2,10 @@ import re
 import sys
 from pathlib import Path
 
-import os
-
 from regersi import BASE
 from regersi.ai import load_model, align, transcribe
 from regersi.audio import get_audio, separate_vocals, parse_time
 from regersi.cli import parser
-from regersi.llm import load_env, llm_rapikan
 from regersi.lyrics import read_lyrics
 from regersi.ttml import build_ttml, fmt_time, tidy
 
@@ -32,10 +29,6 @@ def resolve_out(arg, nama: str) -> Path:
 
 def run():
     args = parser().parse_args()
-    load_env()
-
-    if args.rapikan and not os.environ.get("LLM_MODEL"):
-        sys.exit("--rapikan butuh konfigurasi LLM. Copy .env.example jadi .env lalu isi LLM_API_KEY dan LLM_MODEL.")
 
     cache = Path(args.cache) if args.cache else BASE / "audio"
     lyric_path = resolve_lyric(args.lyric) if args.lyric else None
@@ -61,7 +54,6 @@ def run():
     except Exception as e:
         sys.exit(f"Gagal memuat model Whisper '{args.model}': {e}")
 
-    mentah = None
     if lyric_path:
         lyrics = read_lyrics(lyric_path)
         if not lyrics:
@@ -79,16 +71,6 @@ def run():
             sys.exit(f"Transkripsi gagal: {e}")
         if not lines:
             sys.exit("Tidak ada suara/lirik yang terdeteksi.")
-        if args.rapikan:
-            mentah = [t for _, _, t in lines]
-            print(f"Merapikan {len(mentah)} baris lewat LLM...")
-            baru = llm_rapikan(mentah)
-            if len(baru) == len(mentah):
-                lines = [(b, e, t) for (b, e, _), t in zip(lines, baru)]
-            else:
-                print(f"PERINGATAN: LLM mengembalikan {len(baru)} baris (seharusnya {len(mentah)}). "
-                      "Hasil LLM dibuang, memakai teks mentah.")
-                mentah = None
 
     try:
         lines = tidy(lines, offset=args.offset + trim_offset)
@@ -109,10 +91,6 @@ def run():
         draft.parent.mkdir(parents=True, exist_ok=True)
         draft.write_text("\n".join(t for _, _, t in lines) + "\n", encoding="utf-8")
         print(f"Draft teks: {draft}")
-        if mentah:
-            mf = draft.with_name(f"{out.stem}.mentah.txt")
-            mf.write_text("\n".join(mentah) + "\n", encoding="utf-8")
-            print(f"Teks mentah Whisper (pembanding): {mf.name}")
         ragu = sum("(?)" in t for _, _, t in lines)
         if ragu:
             print(f"{ragu} baris bertanda (?): dengarkan lagi, perbaiki, lalu hapus tandanya.")

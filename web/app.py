@@ -91,13 +91,14 @@ def run_job(data):
             "--model", data.get("model", "large-v3-turbo"),
         ]
 
-        if data.get("lyric"):
-            cmd.extend(["--lyric", data["lyric"]])
+        # Frontend (script.js) mengirim key "lirik" (ejaan id).
+        # Toleransi: terima "lirik" atau "lyric" agar tidak mudah rusak akibat typo.
+        lirik_val = data.get("lirik") or data.get("lyric")
+        if lirik_val:
+            cmd.extend(["--lyric", lirik_val])
 
         if data.get("pisah_vokal"):
             cmd.append("--pisah-vokal")
-        if data.get("rapikan"):
-            cmd.append("--rapikan")
         if data.get("offset"):
             cmd.extend(["--offset", str(data["offset"])])
         if data.get("mulai_dari"):

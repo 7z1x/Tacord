@@ -17,8 +17,6 @@ def parser():
                     help="pisahkan vokal dari musik dulu (butuh demucs, lebih lambat tapi lebih akurat)")
     ap.add_argument("--offset", type=float, default=0.0,
                     help="geser semua waktu, dalam detik (mis. -2.5 atau 1.2)")
-    ap.add_argument("--rapikan", action="store_true",
-                    help="rapikan draft lirik lewat GLM/Kimi via 9router (hanya saat tanpa --lyric)")
     ap.add_argument("--cookies-from-browser", dest="cookies", default=None,
                     help="ambil cookies dari browser (contoh: chrome, edge, firefox, brave) jika YouTube memblokir")
     ap.add_argument("--cache", default=None,

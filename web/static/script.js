@@ -6,7 +6,7 @@ const ALLOWED_LYRIC_EXT = new Set(['.txt', '.lrc']);
 
 const STAGES = [
     [/Audio siap/, 25], [/Memotong audio/, 30], [/Memisahkan vokal/, 40], [/Memuat model/, 55],
-    [/Menyelaraskan|AI menebak/, 75], [/Merapikan/, 85], [/Selesai:/, 100],
+    [/Menyelaraskan|AI menebak/, 75], [/Selesai:/, 100],
 ];
 
 /* ---------- state helpers ---------- */
@@ -227,7 +227,7 @@ btnGenerate.addEventListener('click', async () => {
         sumber: mediaUrl.value.trim(), lirik: lirikVal, model: $('whisper-model').value,
         offset: $('offset-input').value.trim(), mulai_dari: $('start-time-input').value.trim(),
         judul: $('override-title').value.trim(), prompt: $('whisper-prompt').value.trim(),
-        pisah_vokal: $('toggle-demucs').checked, rapikan: $('toggle-llm').checked,
+        pisah_vokal: $('toggle-demucs').checked,
     };
     setRunning(true); resetOutput(); startedAt = Date.now(); setStatus('run', 'Sedang berjalan');
     try {
