@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tacord</title>
+    <link rel="icon" type="image/png" href="/static/img/logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: { extend: {
+            colors: {
+                cream: '#FFF6E5', ink: '#2B1740', muted: '#6B5A7A', line: '#EADFCB',
+                mari: '#F59E0B', mag: '#D6246E', 'mag-t': '#B81D5B',
+                turq: '#14A3A3', 'turq-t': '#0E7C7C', purp: '#5B2A86', leaf: '#3F8F4F', err: '#B3261E'
+            },
+            fontFamily: { sans: ['Outfit', 'system-ui', 'sans-serif'], mono: ['JetBrains Mono', 'ui-monospace', 'monospace'] }
+        } }
+    }
+    </script>
+    <style type="text/tailwindcss">
+        @layer components {
+            .field { @apply w-full h-[52px] px-4 rounded-xl border border-[#D9CBB3] bg-white text-ink text-base focus:outline-none focus:border-ink focus:ring-4 focus:ring-mari/45; }
+            textarea.field { @apply h-auto py-3.5 resize-y; }
+            .field-err { @apply border-2 border-err; }
+        }
+    </style>
+</head>
+<body class="bg-cream font-sans text-ink antialiased selection:bg-mari/40">
+{% block body %}{% endblock %}
+</body>
+</html>
