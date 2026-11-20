@@ -1,3 +1,17 @@
-.venv
-.vscode
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Environment & editor
+.venv/
+vscode/
 .env
+
+# Project output: keep only README.md
+audio/*
+!audio/README.md
+ttml/*
+!ttml/README.md
+lirik/*
+!lirik/README.md
