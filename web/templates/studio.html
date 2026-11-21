@@ -92,6 +92,8 @@
 
             <div class="flex flex-col">
                 {{ toggle('toggle-demucs', 'Separate vocals (Demucs)', 'Isolate vocals from music for more accurate transcription.') }}
+                {{ toggle('toggle-verify', 'Verify alignment', 'After aligning your lyric, transcribe the audio to detect vocal regions and flag lines placed over instrumentals/silence with (?). Slower (extra transcribe pass).') }}
+                {{ toggle('toggle-fetch', 'Fetch lyrics if empty', 'When no lyric file is selected, use the 9router LLM to search for lyrics online (raplib.com etc.) based on the video title, then align them instead of producing a draft.') }}
             </div>
 
             <button id="btnGenerate" type="button" disabled class="flex h-[58px] w-full items-center justify-center gap-3 rounded-full bg-ink text-lg font-semibold text-cream transition enabled:hover:bg-[#43275f] disabled:cursor-not-allowed disabled:bg-[#E5DACB] disabled:text-[#8A7C96] focus-visible:outline focus-visible:outline-4 focus-visible:outline-turq">

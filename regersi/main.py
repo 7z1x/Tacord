@@ -4,10 +4,15 @@ from pathlib import Path
 
 from regersi import BASE
 from regersi.ai import load_model, align, transcribe
-from regersi.audio import get_audio, separate_vocals, parse_time
+from regersi.audio import get_audio, separate_vocals, parse_time, _slug
 from regersi.cli import parser
 from regersi.lyrics import read_lyrics
 from regersi.ttml import build_ttml, fmt_time, tidy
+
+
+def _slug_title(s: str) -> str:
+    """Make a filesystem-safe slug from a song title."""
+    return _slug(s) if s else "lyric"
 
 
 def resolve_lyric(arg: str) -> Path:
@@ -63,6 +68,46 @@ def run():
                   "Remove them after reviewing.")
         print(f"Aligning {len(lyrics)} lines from {lyric_path.name} with audio...")
         lines = align(model, audio, lyrics, args.language, prompt=args.prompt)
+        if args.verify:
+            from regersi.ai import verify_alignment
+            print("Verifying alignment against audio (transcribe + vocal map)...")
+            lines, flagged, vocal_map = verify_alignment(
+                model, audio, lines, args.language, prompt=args.prompt
+            )
+            if flagged:
+                print(f"Verification: {len(flagged)} line(s) flagged with (?) — likely placed over non-vocal sections:")
+                for idx, t, text in flagged:
+                    print(f"  Line {idx + 1} @ {fmt_time(t)}: \"{text}\"")
+                print("Review these lines; they may need manual timing correction.")
+            else:
+                print("Verification: all lines fall within detected vocal regions. No anomalies.")
+    elif args.fetch_lyrics:
+        # No lyric file provided — try to fetch lyrics from the web via the LLM.
+        from regersi.lyric_fetch import fetch_lyrics, save_fetched_lyrics
+        fetched = fetch_lyrics(title)
+        if not fetched:
+            sys.exit("Lyric fetch failed and no lyric file was provided. "
+                     "Run again with --lyric, or check the song title.")
+        lyric_path = save_fetched_lyrics(fetched, _slug_title(args.title or title))
+        print(f"Saved fetched lyrics to: {lyric_path}")
+        lyrics = fetched
+        if any("(?)" in l for l in lyrics):
+            print("WARNING: fetched lyrics contain (?) uncertain words — review before relying on them.")
+        print(f"Aligning {len(lyrics)} fetched lines with audio...")
+        lines = align(model, audio, lyrics, args.language, prompt=args.prompt)
+        if args.verify:
+            from regersi.ai import verify_alignment
+            print("Verifying alignment against audio (transcribe + vocal map)...")
+            lines, flagged, vocal_map = verify_alignment(
+                model, audio, lines, args.language, prompt=args.prompt
+            )
+            if flagged:
+                print(f"Verification: {len(flagged)} line(s) flagged with (?) — likely placed over non-vocal sections:")
+                for idx, t, text in flagged:
+                    print(f"  Line {idx + 1} @ {fmt_time(t)}: \"{text}\"")
+                print("Review these lines; they may need manual timing correction.")
+            else:
+                print("Verification: all lines fall within detected vocal regions. No anomalies.")
     else:
         print("No lyric file provided, AI is transcribing text from audio (result = draft)...")
         try:
@@ -77,7 +122,13 @@ def run():
     except Exception as e:
         sys.exit(f"Failed to tidy results: {e}")
 
-    name = re.sub(r'[\\/:*?"<>|]+', "", title).strip() or "lyric"
+    if args.title:
+        name = re.sub(r'[\\/:*?"<>|]+', "", args.title).strip()
+    elif lyric_path:
+        name = lyric_path.stem
+    else:
+        name = re.sub(r'[\\/:*?"<>|]+', "", title).strip()
+    name = name or "lyric"
     out = resolve_out(args.out, name)
     out.parent.mkdir(parents=True, exist_ok=True)
     try:

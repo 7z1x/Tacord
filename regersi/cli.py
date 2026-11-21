@@ -15,6 +15,13 @@ def parser():
     ap.add_argument("--language", default="id", help="language code (default: id)")
     ap.add_argument("--separate-vocals", action="store_true",
                     help="isolate vocals from music first (requires demucs, slower but more accurate)")
+    ap.add_argument("--verify", action="store_true",
+                    help="transcribe audio to detect vocal regions, then flag aligned lines that fall "
+                         "outside them (marks with (?)). Slower (runs an extra transcribe pass).")
+    ap.add_argument("--fetch-lyrics", action="store_true",
+                    help="when no --lyric is given, fetch lyrics from the web (raplib.com etc.) using "
+                         "the 9router LLM to interpret the video title. The result is saved to lyric/ "
+                         "and aligned to the audio instead of producing a draft.")
     ap.add_argument("--offset", type=float, default=0.0,
                     help="shift all timestamps, in seconds (e.g. -2.5 or 1.2)")
     ap.add_argument("--cookies-from-browser", dest="cookies", default=None,

@@ -119,6 +119,10 @@ def run_job_process(job):
             cmd.extend(["--lyric", data["lyric"]])
         if data.get("separate_vocals"):
             cmd.append("--separate-vocals")
+        if data.get("verify"):
+            cmd.append("--verify")
+        if data.get("fetch_lyrics"):
+            cmd.append("--fetch-lyrics")
         if data.get("offset"):
             cmd.extend(["--offset", str(data["offset"])])
         if data.get("start_from"):
