@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Entry point untuk regersi lyric2ttml."""
+"""Entry point for regersi lyric2ttml."""
 import sys
 from pathlib import Path
 

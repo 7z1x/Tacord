@@ -23,7 +23,7 @@ app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
 @app.context_processor
 def cache_bust():
-    """Tambahkan ?v=<mtime> ke URL static supaya browser selalu ambil file terbaru."""
+    """Append ?v=<mtime> to static URLs so the browser always fetches the latest file."""
     _url_for = app.jinja_env.globals["url_for"]
 
     def versioned_url_for(endpoint, **values):
@@ -87,28 +87,26 @@ def run_job(data):
         cmd = [
             sys.executable,
             str(BASE / "regersi" / "lyric2ttml.py"),
-            data["sumber"],
+            data["source"],
             "--model", data.get("model", "large-v3-turbo"),
         ]
 
-        # Frontend (script.js) mengirim key "lirik" (ejaan id).
-        # Toleransi: terima "lirik" atau "lyric" agar tidak mudah rusak akibat typo.
-        lirik_val = data.get("lirik") or data.get("lyric")
-        if lirik_val:
-            cmd.extend(["--lyric", lirik_val])
+        lyric_val = data.get("lyric")
+        if lyric_val:
+            cmd.extend(["--lyric", lyric_val])
 
-        if data.get("pisah_vokal"):
-            cmd.append("--pisah-vokal")
+        if data.get("separate_vocals"):
+            cmd.append("--separate-vocals")
         if data.get("offset"):
             cmd.extend(["--offset", str(data["offset"])])
-        if data.get("mulai_dari"):
-            cmd.extend(["--mulai-dari", data["mulai_dari"]])
+        if data.get("start_from"):
+            cmd.extend(["--start-from", data["start_from"]])
         if data.get("prompt"):
             cmd.extend(["--prompt", data["prompt"]])
-        if data.get("judul"):
-            cmd.extend(["--judul", data["judul"]])
+        if data.get("title"):
+            cmd.extend(["--title", data["title"]])
 
-        log(f"Menjalankan: {' '.join(cmd[:5])} ...")
+        log(f"Running: {' '.join(cmd[:5])} ...")
 
         env = os.environ.copy()
         env["PYTHONUNBUFFERED"] = "1"
@@ -131,16 +129,16 @@ def run_job(data):
         process.wait()
 
         if process.returncode != 0:
-            JOB["error"] = "Proses gagal. Lihat log di atas."
+            JOB["error"] = "Process failed. See log above."
         else:
-            # Cari baris 'Selesai:' untuk ambil path hasil
+            # Find the 'Done:' line to extract the result path
             result_file = None
             for line in output_lines:
-                m = re.search(r"Selesai:\s+(.+?)\s+\(", line)
+                m = re.search(r"Done:\s+(.+?)\s+\(", line)
                 if m:
                     result_file = Path(m.group(1)).name
             JOB["result"] = result_file
-            log("Selesai.")
+            log("Done.")
 
     except Exception as e:
         JOB["error"] = str(e)
@@ -171,11 +169,11 @@ def riwayat():
 @app.route("/api/run", methods=["POST"])
 def api_run():
     if JOB["running"]:
-        return jsonify({"ok": False, "error": "Sedang ada proses berjalan."})
+        return jsonify({"ok": False, "error": "A process is already running."})
 
     data = request.json
-    if not data.get("sumber"):
-        return jsonify({"ok": False, "error": "Sumber audio wajib diisi."})
+    if not data.get("source"):
+        return jsonify({"ok": False, "error": "Audio source is required."})
 
     thread = threading.Thread(target=run_job, args=(data,))
     thread.start()
@@ -200,15 +198,15 @@ def api_results():
 @app.route("/api/upload-lyric", methods=["POST"])
 def upload_lyric():
     if "file" not in request.files:
-        return jsonify({"ok": False, "error": "Tidak ada file yang diunggah."})
+        return jsonify({"ok": False, "error": "No file uploaded."})
 
     file = request.files["file"]
     if not file or file.filename == "":
-        return jsonify({"ok": False, "error": "Nama file kosong."})
+        return jsonify({"ok": False, "error": "Filename is empty."})
 
     ext = Path(file.filename).suffix.lower()
     if ext not in ALLOWED_LYRIC_EXT:
-        return jsonify({"ok": False, "error": f"Format tidak didukung: {ext}. Hanya .txt dan .lrc"})
+        return jsonify({"ok": False, "error": f"Unsupported format: {ext}. Only .txt and .lrc"})
 
     lyric_dir = BASE / "lyric"
     lyric_dir.mkdir(parents=True, exist_ok=True)

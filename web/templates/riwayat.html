@@ -9,14 +9,14 @@
         </a>
         <nav class="flex gap-7 text-base font-medium">
             <a href="{{ url_for('studio') }}" class="text-muted hover:text-ink">Studio</a>
-            <a href="{{ url_for('riwayat') }}" class="border-b-[3px] border-mari pb-1">Riwayat</a>
+            <a href="{{ url_for('riwayat') }}" class="border-b-[3px] border-mari pb-1">History</a>
         </nav>
     </header>
 
     <div class="flex items-end justify-between gap-6 px-6 pb-9 pt-5 sm:px-12">
         <div>
-            <h1 class="text-[clamp(36px,5vw,60px)] font-semibold leading-[1.05] tracking-[-0.03em]">Riwayat</h1>
-            <p class="mt-3 max-w-[520px] text-lg text-muted">Semua file TTML yang pernah di-generate.</p>
+            <h1 class="text-[clamp(36px,5vw,60px)] font-semibold leading-[1.05] tracking-[-0.03em]">History</h1>
+            <p class="mt-3 max-w-[520px] text-lg text-muted">All TTML files you have generated.</p>
         </div>
         <img src="{{ img('skull') }}" alt="" class="-mb-1.5 hidden h-[130px] w-auto rotate-[4deg] sm:block">
     </div>
@@ -24,12 +24,12 @@
     <div class="px-6 pb-20 sm:px-12">
         <section class="rounded-3xl border border-line bg-white p-6 sm:p-9">
             <div class="flex items-baseline justify-between">
-                <h2 class="text-[22px] font-semibold">Daftar Hasil</h2>
-                <span id="resultsCount" class="text-sm text-muted">{{ results|length }} berkas .ttml</span>
+                <h2 class="text-[22px] font-semibold">Results</h2>
+                <span id="resultsCount" class="text-sm text-muted">{{ results|length }} .ttml files</span>
             </div>
 
             <div id="resultsEmpty" class="{% if results %}hidden{% endif %} py-6 text-center text-muted">
-                Belum ada hasil
+                No results yet
             </div>
             <div id="resultsList" class="mt-3">
                 {% for it in results %}

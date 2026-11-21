@@ -1,12 +1,12 @@
 const $ = (id) => document.getElementById(id);
 const mediaUrl = $('media-url'), lyricSelect = $('lyric-select'), lyricFile = $('lyricFile');
 const btnGenerate = $('btnGenerate'), terminalBox = $('terminalBox');
-let pollTimer = null, running = false, rendered = 0, lineTimes = [], startedAt = 0, touched = { media: false, lirik: false };
+let pollTimer = null, running = false, rendered = 0, lineTimes = [], startedAt = 0, touched = { media: false, lyric: false };
 const ALLOWED_LYRIC_EXT = new Set(['.txt', '.lrc']);
 
 const STAGES = [
-    [/Audio siap/, 25], [/Memotong audio/, 30], [/Memisahkan vokal/, 40], [/Memuat model/, 55],
-    [/Menyelaraskan|AI menebak/, 75], [/Selesai:/, 100],
+    [/Audio ready/, 25], [/Trimming audio/, 30], [/Separating vocals/, 40], [/Loading model/, 55],
+    [/Aligning|transcribing/, 75], [/Done:/, 100],
 ];
 
 /* ---------- state helpers ---------- */
@@ -32,7 +32,7 @@ function updateGenerateState() {
     mediaUrl.classList.toggle('field-err', touched.media && missMedia);
     btnGenerate.disabled = running || missMedia;
     // Show/hide hint about whisper transcribe mode
-    const hint = $('hint-lirik');
+    const hint = $('hint-lyric');
     if (hint) hint.classList.toggle('hidden', lyricSelect.value !== '__none__');
 }
 function setRunning(on) {
@@ -57,10 +57,10 @@ function showUpload(kind, text) {
 }
 function updateLyricOptions(lyrics, selected) {
     lyricSelect.innerHTML = '';
-    const none = new Option('Tanpa lirik (Whisper transcribe)', '__none__');
+    const none = new Option('No lyric file (Whisper transcribe)', '__none__');
     lyricSelect.add(none);
     lyrics.forEach((n) => lyricSelect.add(new Option(n, n, false, n === selected)));
-    lyricSelect.add(new Option('Import file lirik...', '__import__'));
+    lyricSelect.add(new Option('Import lyric file...', '__import__'));
     if (selected) lyricSelect.value = selected;
     else none.selected = true;
 }
@@ -76,15 +76,15 @@ lyricSelect.addEventListener('change', () => {
 async function uploadLyricFile(file) {
     const fd = new FormData();
     fd.append('file', file);
-    showUpload('busy', 'Mengunggah ' + file.name + '...');
+    showUpload('busy', 'Uploading ' + file.name + '...');
     try {
         const json = await (await fetch('/api/upload-lyric', { method: 'POST', body: fd })).json();
-        if (!json.ok) { showUpload('err', 'Gagal: ' + json.error); return; }
+        if (!json.ok) { showUpload('err', 'Failed: ' + json.error); return; }
         updateLyricOptions(json.lyrics, json.filename);
-        touched.lirik = true;
-        showUpload('ok', json.filename + ' berhasil diunggah');
+        touched.lyric = true;
+        showUpload('ok', json.filename + ' uploaded successfully');
     } catch (e) {
-        showUpload('err', 'Gagal mengunggah: ' + e.message);
+        showUpload('err', 'Upload failed: ' + e.message);
     }
     updateGenerateState();
 }
@@ -107,7 +107,7 @@ lyricSelect.addEventListener('drop', (e) => {
     if (!files.length) return;
     const file = files[0];
     if (!isLyricFile(file)) {
-        showUpload('err', 'Format tidak didukung: ' + file.name);
+        showUpload('err', 'Unsupported format: ' + file.name);
         return;
     }
     uploadLyricFile(file);
@@ -139,7 +139,7 @@ mediaUrl.addEventListener('blur', () => { touched.media = true; updateGenerateSt
 function resetOutput() {
     terminalBox.innerHTML = ''; rendered = 0; lineTimes = [];
     $('resultBox').classList.add('hidden'); $('errorBox').classList.add('hidden');
-    setProgress(0, 'Memulai...');
+    setProgress(0, 'Starting...');
 }
 function addLine(text, idx) {
     if (lineTimes[idx] === undefined) lineTimes[idx] = Math.round((Date.now() - startedAt) / 1000);
@@ -147,7 +147,7 @@ function addLine(text, idx) {
     row.className = 'flex gap-3';
     const t = document.createElement('span'); t.className = 'flex-none text-[#B59ADB]'; t.textContent = '[' + mmss(lineTimes[idx]) + ']';
     const m = document.createElement('span');
-    m.className = /^(Error|Traceback)/i.test(text) ? 'text-[#FF9C93]' : /PERINGATAN/.test(text) ? 'text-mari' : 'text-[#E9DDF7]';
+    m.className = /^(Error|Traceback)/i.test(text) ? 'text-[#FF9C93]' : /WARNING/.test(text) ? 'text-mari' : 'text-[#E9DDF7]';
     m.style.overflowWrap = 'anywhere'; m.textContent = text;
     row.append(t, m); terminalBox.appendChild(row);
 }
@@ -158,14 +158,14 @@ async function pollStatus() {
     terminalBox.scrollTop = terminalBox.scrollHeight;
     let pct = 8;
     s.log.forEach((l) => STAGES.forEach(([re, p]) => { if (re.test(l) && p > pct) pct = p; }));
-    const last = (s.log.slice(-1)[0] || 'Memproses...');
-    if (s.running) { setStatus('run', 'Sedang berjalan'); setProgress(Math.min(pct, 95), last.length > 70 ? last.slice(0, 70) + '…' : last); return; }
+    const last = (s.log.slice(-1)[0] || 'Processing...');
+    if (s.running) { setStatus('run', 'Running'); setProgress(Math.min(pct, 95), last.length > 70 ? last.slice(0, 70) + '…' : last); return; }
     clearInterval(pollTimer); pollTimer = null; setRunning(false);
     if (s.error) {
-        setStatus('error', 'Gagal'); setProgress(pct, 'Proses berhenti.');
+        setStatus('error', 'Failed'); setProgress(pct, 'Process stopped.');
         $('errorText').textContent = s.error; $('errorBox').classList.remove('hidden');
     } else {
-        setStatus('done', 'Selesai'); setProgress(100, 'TTML siap.');
+        setStatus('done', 'Done'); setProgress(100, 'TTML ready.');
         if (s.result) showResult(s.result);
         if ($('resultsList')) refreshResults();
     }
@@ -192,18 +192,18 @@ async function showResult(name) {
             const b = document.createElement('span'); b.textContent = m[3];
             row.append(a, b); box.appendChild(row);
         }
-    } catch (e) { /* preview opsional */ }
+    } catch (e) { /* preview optional */ }
 }
 function renderResults(items) {
     const list = $('resultsList');
     if (!list) return;
     list.innerHTML = '';
     $('resultsEmpty').classList.toggle('hidden', items.length > 0);
-    $('resultsCount').textContent = items.length ? items.length + ' berkas .ttml' : '';
+    $('resultsCount').textContent = items.length ? items.length + ' .ttml files' : '';
     items.forEach((it) => {
         const row = document.createElement('div');
         row.className = 'flex items-center gap-3.5 border-t border-line py-3.5';
-        row.innerHTML = '<svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true" class="flex-none"><circle cx="15" cy="15" r="14" fill="#F59E0B"/><circle cx="15" cy="15" r="8" fill="none" stroke="#E48A06" stroke-width="2"/><circle cx="15" cy="15" r="3" fill="#FFF6E5"/></svg>'
+        row.innerHTML = '<svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true" class="flex-none"><circle cx="15" cy="15" r="14" fill="#F59E0B"/><circle cx="15" cy="15" token="8" fill="none" stroke="#E48A06" stroke-width="2"/><circle cx="15" cy="15" r="3" fill="#FFF6E5"/></svg>'
             + '<div class="min-w-0 flex-1"><div class="name text-base font-medium [overflow-wrap:anywhere]"></div><div class="date text-[13px] text-muted"></div></div>'
             + '<a class="dl flex h-11 w-11 flex-none items-center justify-center rounded-full border border-line transition hover:bg-cream"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg></a>';
         row.querySelector('.name').textContent = it.name;
@@ -215,31 +215,31 @@ function renderResults(items) {
 }
 async function refreshResults() {
     if (!$('resultsList')) return;
-    try { renderResults(await (await fetch('/api/results')).json()); } catch (e) { /* abaikan */ }
+    try { renderResults(await (await fetch('/api/results')).json()); } catch (e) { /* ignore */ }
 }
 
 /* ---------- generate ---------- */
 btnGenerate.addEventListener('click', async () => {
-    touched = { media: true, lirik: true }; updateGenerateState();
+    touched = { media: true, lyric: true }; updateGenerateState();
     if (btnGenerate.disabled) return;
-    const lirikVal = lyricSelect.value === '__none__' ? '' : lyricSelect.value;
+    const lyricVal = lyricSelect.value === '__none__' ? '' : lyricSelect.value;
     const data = {
-        sumber: mediaUrl.value.trim(), lirik: lirikVal, model: $('whisper-model').value,
-        offset: $('offset-input').value.trim(), mulai_dari: $('start-time-input').value.trim(),
-        judul: $('override-title').value.trim(), prompt: $('whisper-prompt').value.trim(),
-        pisah_vokal: $('toggle-demucs').checked,
+        source: mediaUrl.value.trim(), lyric: lyricVal, model: $('whisper-model').value,
+        offset: $('offset-input').value.trim(), start_from: $('start-time-input').value.trim(),
+        title: $('override-title').value.trim(), prompt: $('whisper-prompt').value.trim(),
+        separate_vocals: $('toggle-demucs').checked,
     };
-    setRunning(true); resetOutput(); startedAt = Date.now(); setStatus('run', 'Sedang berjalan');
+    setRunning(true); resetOutput(); startedAt = Date.now(); setStatus('run', 'Running');
     try {
         const json = await (await fetch('/api/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })).json();
         if (!json.ok) {
-            setRunning(false); setStatus('error', 'Gagal'); setProgress(0, 'Tidak bisa memulai.');
+            setRunning(false); setStatus('error', 'Failed'); setProgress(0, 'Could not start.');
             $('errorText').textContent = json.error; $('errorBox').classList.remove('hidden'); return;
         }
         startPolling();
     } catch (e) {
-        setRunning(false); setStatus('error', 'Gagal');
-        $('errorText').textContent = 'Server tidak merespons: ' + e.message; $('errorBox').classList.remove('hidden');
+        setRunning(false); setStatus('error', 'Failed');
+        $('errorText').textContent = 'Server did not respond: ' + e.message; $('errorBox').classList.remove('hidden');
     }
 });
 
@@ -247,6 +247,6 @@ btnGenerate.addEventListener('click', async () => {
 const initialResults = $('initialResults');
 if (initialResults && $('resultsList')) renderResults(JSON.parse(initialResults.textContent || '[]'));
 updateGenerateState();
-fetch('/api/status').then((r) => r.json()).then((s) => {   // lanjutkan tampilan jika halaman di-reload saat proses jalan
-    if (s.running) { startedAt = Date.now(); resetOutput(); setRunning(true); setStatus('run', 'Sedang berjalan'); startPolling(); }
+fetch('/api/status').then((r) => r.json()).then((s) => {   // resume display if page is reloaded while a process is running
+    if (s.running) { startedAt = Date.now(); resetOutput(); setRunning(true); setStatus('run', 'Running'); startPolling(); }
 }).catch(() => {});

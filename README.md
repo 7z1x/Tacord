@@ -143,28 +143,28 @@ python regersi/lyric2ttml.py "https://www.youtube.com/watch?v=..."
 python regersi/lyric2ttml.py "C:\music\mysong.mp3" --lyric mysong.txt
 
 # Separate vocals first for better accuracy on dense mixes
-python regersi/lyric2ttml.py "https://www.youtube.com/watch?v=..." --lyric mysong.txt --pisah-vokal
+python regersi/lyric2ttml.py "https://www.youtube.com/watch?v=..." --lyric mysong.txt --separate-vocals
 
 # Trim audio to start from a specific timestamp
-python regersi/lyric2ttml.py "https://www.youtube.com/watch?v=..." --lyric mysong.txt --mulai-dari 00:12.500
+python regersi/lyric2ttml.py "https://www.youtube.com/watch?v=..." --lyric mysong.txt --start-from 00:12.500
 
 # Override the output title
-python regersi/lyric2ttml.py "https://www.youtube.com/watch?v=..." --lyric mysong.txt --judul "My Song"
+python regersi/lyric2ttml.py "https://www.youtube.com/watch?v=..." --lyric mysong.txt --title "My Song"
 ```
 
 #### CLI options
 
 | Flag | Description |
 |---|---|
-| `sumber` *(positional)* | YouTube URL or path to a local audio file (mp3/wav/m4a). |
+| `source` *(positional)* | YouTube URL or path to a local audio file (mp3/wav/m4a). |
 | `-l`, `--lyric` | Lyric file (`.txt` / `.lrc`). Can be a full path or just a filename in `lyric/`. |
 | `-o`, `--out` | Output `.ttml` filename (without folder = saved to `ttml/`). |
 | `-m`, `--model` | Whisper model: `tiny`, `base`, `small`, `medium`, `large-v3`, `large-v3-turbo` *(default)*. |
-| `--bahasa` | Language code *(default: `id`)*. |
-| `--pisah-vokal` | Isolate vocals from instrumentals using Demucs (slower but more accurate). |
+| `--language` | Language code *(default: `id`)*. |
+| `--separate-vocals` | Isolate vocals from instrumentals using Demucs (slower but more accurate). |
 | `--offset` | Shift all timestamps by N seconds (e.g. `-2.5` or `1.2`). |
-| `--mulai-dari` | Start time of the lyrics, format `ss.mmm`, `mm:ss.mmm`, or `hh:mm:ss.mmm`. |
-| `--judul` | Override the cache folder name and output filename. |
+| `--start-from` | Start time of the lyrics, format `ss.mmm`, `mm:ss.mmm`, or `hh:mm:ss.mmm`. |
+| `--title` | Override the cache folder name and output filename. |
 | `--prompt` | Initial prompt for Whisper (e.g. dialect or vocabulary hints). |
 | `--cookies-from-browser` | Extract cookies from a browser (`chrome`, `edge`, `firefox`, `brave`) if YouTube blocks the download. |
 | `--cache` | Custom audio cache directory *(default: `audio/`)*. |

@@ -7,7 +7,7 @@ from regersi import BASE
 
 
 def parse_time(s: str) -> float:
-    """Parse 'ss.mmm', 'mm:ss.mmm', atau 'hh:mm:ss.mmm' ke detik."""
+    """Parse 'ss.mmm', 'mm:ss.mmm', or 'hh:mm:ss.mmm' to seconds."""
     parts = s.strip().split(":")
     if len(parts) == 1:
         return float(parts[0])
@@ -19,7 +19,7 @@ def parse_time(s: str) -> float:
 
 
 def _clean_url(url: str) -> str:
-    """Bersihkan URL YouTube: hanya simpan video ID, buang parameter lain."""
+    """Clean a YouTube URL: keep only the video ID, drop all other parameters."""
     from urllib.parse import urlparse, parse_qs, urlencode
     parsed = urlparse(url)
 
@@ -29,13 +29,13 @@ def _clean_url(url: str) -> str:
         if "v" in qs:
             clean_query = urlencode({"v": qs["v"][0]})
             url = f"{parsed.scheme}://{parsed.hostname}{parsed.path}?{clean_query}"
-            print(f"URL dibersihkan: {url}")
+            print(f"URL cleaned: {url}")
             return url
 
-    # youtu.be/XXXX?si=...&list=... -> youtu.be/XXXX (tanpa query)
+    # youtu.be/XXXX?si=...&list=... -> youtu.be/XXXX (no query)
     if parsed.hostname and "youtu.be" in parsed.hostname:
         url = f"{parsed.scheme}://{parsed.hostname}{parsed.path}"
-        print(f"URL dibersihkan: {url}")
+        print(f"URL cleaned: {url}")
         return url
 
     return url
@@ -55,18 +55,18 @@ def _ydl_opts(cookies=None, **extra):
 
 
 def _slug(name: str) -> str:
-    """Ambil bagian judul setelah tanda '-' terakhir, lalu 2 kata awal."""
+    """Take the part of the title after the last ' - ', then the first 2 words."""
     if " - " in name:
         name = name.rsplit(" - ", 1)[-1]
-    # Buang konten dalam kurung di akhir judul (official video, audio, dll)
+    # Strip content in parentheses at the end of the title (official video, audio, etc.)
     name = re.sub(r"\s*[\(\[].*?[\)\]]\s*$", "", name).strip()
     words = re.sub(r"[^\w\s]", " ", name).split()
     slug = "_".join(words[:2]).strip("_")
     return slug or "audio"
 
 
-def get_audio(sumber: str, cache: Path, cookies: str = None, args_judul: str = None):
-    p = Path(sumber)
+def get_audio(source: str, cache: Path, cookies: str = None, args_title: str = None):
+    p = Path(source)
     if p.is_file():
         work = cache / p.stem
         work.mkdir(parents=True, exist_ok=True)
@@ -75,24 +75,24 @@ def get_audio(sumber: str, cache: Path, cookies: str = None, args_judul: str = N
     try:
         import yt_dlp
     except ImportError:
-        sys.exit("yt-dlp belum terpasang. Jalankan: pip install -U yt-dlp")
+        sys.exit("yt-dlp is not installed. Run: pip install -U yt-dlp")
 
-    clean_url = _clean_url(sumber)
+    clean_url = _clean_url(source)
 
     try:
         with yt_dlp.YoutubeDL(_ydl_opts(cookies)) as ydl:
             info = ydl.extract_info(clean_url, download=False)
     except Exception as e:
         sys.exit(
-            f"Gagal mengambil info audio dari YouTube: {e}\n\n"
-            "Solusi:\n"
-            "1. Gunakan cookies browser: --cookies-from-browser chrome (atau edge / firefox)\n"
-            "2. Atau download manual lagu tersebut (mp3/wav) lalu jalankan dengan file lokal:\n"
-            "   python lyric2ttml.py namalagu.mp3 --lyric namalagu.txt"
+            f"Failed to fetch audio info from YouTube: {e}\n\n"
+            "Solutions:\n"
+            "1. Use browser cookies: --cookies-from-browser chrome (or edge / firefox)\n"
+            "2. Or download the song manually (mp3/wav) then run with a local file:\n"
+            "   python lyric2ttml.py mysong.mp3 --lyric mysong.txt"
         )
 
     title = info.get("title") or info["id"]
-    slug = _slug(args_judul or title)
+    slug = _slug(args_title or title)
     work = cache / slug
     wav = work / "audio.wav"
     if not wav.exists():
@@ -118,12 +118,12 @@ def separate_vocals(audio: Path, work: Path) -> Path:
             check=True,
         )
     except (subprocess.CalledProcessError, FileNotFoundError):
-        sys.exit("demucs gagal / belum terpasang. Jalankan: pip install demucs")
+        sys.exit("demucs failed / not installed. Run: pip install demucs")
     return next(work.glob("sep/*/*/vocals.wav"))
 
 
 def trim_audio(audio: Path, work: Path, start: float, buffer: float = 5.0) -> Path:
-    """Potong audio dari (start - buffer) detik, lalu tambahkan offset ke args."""
+    """Cut audio from (start - buffer) seconds, then add the offset to args."""
     import subprocess
     trimmed = work / f"audio_trimmed_{start:.2f}.wav"
     if trimmed.exists():

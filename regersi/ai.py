@@ -8,7 +8,7 @@ def load_model(name: str):
     try:
         import stable_whisper
     except ImportError:
-        sys.exit("stable-ts belum terpasang. Jalankan: pip install -U stable-ts")
+        sys.exit("stable-ts is not installed. Run: pip install -U stable-ts")
     return stable_whisper.load_model(name)
 
 
@@ -31,9 +31,9 @@ def align(model, audio: Path, lyrics, lang: str, prompt: str = None):
         return map_words_to_lines(words, lyrics)
 
     sys.exit(
-        "Hasil alignment tidak bisa dipetakan ke baris lirik "
-        f"({len(segs)} segmen vs {len(lyrics)} baris). "
-        "Coba aktifkan --pisah-vokal atau pakai model lebih besar (-m large-v3)."
+        "Alignment result could not be mapped to lyric lines "
+        f"({len(segs)} segments vs {len(lyrics)} lines). "
+        "Try enabling --separate-vocals or using a larger model (-m large-v3)."
     )
 
 
