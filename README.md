@@ -187,8 +187,6 @@ python regersi/lyric2ttml.py "https://www.youtube.com/watch?v=..." --lyric "myso
 
 ## Terms of use
 
-Tacord is distributed under the **MIT License**. You are free to use, modify, and distribute this software, provided that the original copyright notice and license are included.
-
 **Note:** Tacord downloads audio from YouTube for personal, non-commercial use (e.g., creating synced lyrics for your own music library). Ensure you comply with YouTube's Terms of Service and applicable copyright laws in your jurisdiction.
 
 ---
