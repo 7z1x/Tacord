@@ -31,13 +31,12 @@ function updateGenerateState() {
     $('err-media').classList.toggle('hidden', !(touched.media && missMedia));
     mediaUrl.classList.toggle('field-err', touched.media && missMedia);
     btnGenerate.disabled = running || missMedia;
-    // Show/hide hint about whisper transcribe mode
     const hint = $('hint-lyric');
     if (hint) hint.classList.toggle('hidden', lyricSelect.value !== '__none__');
 }
 function setRunning(on) {
     running = on;
-    $('btnGenerateText').textContent = on ? 'Generating...' : 'Generate TTML';
+    $('btnGenerateText').textContent = on ? 'Adding to queue...' : 'Add to Queue';
     $('btnGenerateIcon').classList.toggle('hidden', on);
     $('btnSpinner').classList.toggle('hidden', !on);
     updateGenerateState();
@@ -151,28 +150,120 @@ function addLine(text, idx) {
     m.style.overflowWrap = 'anywhere'; m.textContent = text;
     row.append(t, m); terminalBox.appendChild(row);
 }
+
+let currentRunningJobId = null;
+
 async function pollStatus() {
     let s;
-    try { s = await (await fetch('/api/status')).json(); } catch (e) { return; }
-    for (; rendered < s.log.length; rendered++) addLine(s.log[rendered], rendered);
-    terminalBox.scrollTop = terminalBox.scrollHeight;
-    let pct = 8;
-    s.log.forEach((l) => STAGES.forEach(([re, p]) => { if (re.test(l) && p > pct) pct = p; }));
-    const last = (s.log.slice(-1)[0] || 'Processing...');
-    if (s.running) { setStatus('run', 'Running'); setProgress(Math.min(pct, 95), last.length > 70 ? last.slice(0, 70) + '…' : last); return; }
-    clearInterval(pollTimer); pollTimer = null; setRunning(false);
-    if (s.error) {
-        setStatus('error', 'Failed'); setProgress(pct, 'Process stopped.');
-        $('errorText').textContent = s.error; $('errorBox').classList.remove('hidden');
-    } else {
-        setStatus('done', 'Done'); setProgress(100, 'TTML ready.');
-        if (s.result) showResult(s.result);
-        if ($('resultsList')) refreshResults();
+    try { s = await (await fetch('/api/queue')).json(); } catch (e) { return; }
+
+    renderQueue(s.queue);
+
+    const runningJob = s.queue.find(j => j.status === 'running');
+    if (runningJob) {
+        const detail = await (await fetch('/api/queue/' + runningJob.id)).json();
+        for (; rendered < detail.log.length; rendered++) addLine(detail.log[rendered], rendered);
+        terminalBox.scrollTop = terminalBox.scrollHeight;
+        let pct = 8;
+        detail.log.forEach((l) => STAGES.forEach(([re, p]) => { if (re.test(l) && p > pct) pct = p; }));
+        const last = (detail.log.slice(-1)[0] || 'Processing...');
+        setStatus('run', 'Running');
+        setProgress(Math.min(pct, 95), last.length > 70 ? last.slice(0, 70) + '…' : last);
+        currentRunningJobId = runningJob.id;
+        return;
+    }
+
+    // No running job — if we were tracking one, show its final result
+    if (currentRunningJobId) {
+        const finished = s.queue.find(j => j.id === currentRunningJobId);
+        if (finished) {
+            clearInterval(pollTimer); pollTimer = null; setRunning(false);
+            if (finished.status === 'error') {
+                setStatus('error', 'Failed'); setProgress(100, 'Process stopped.');
+                $('errorText').textContent = finished.error || 'Process failed.'; $('errorBox').classList.remove('hidden');
+            } else {
+                setStatus('done', 'Done'); setProgress(100, 'TTML ready.');
+                if (finished.result) showResult(finished.result);
+                if ($('resultsList')) refreshResults();
+            }
+            currentRunningJobId = null;
+            // If more jobs in queue, keep polling to show next one
+            if (s.queue.some(j => j.status === 'pending')) {
+                setTimeout(() => { startPolling(); }, 500);
+            }
+        }
     }
 }
 function startPolling() {
     if (pollTimer) return;
     pollTimer = setInterval(pollStatus, 800); pollStatus();
+}
+
+/* ---------- queue panel ---------- */
+function shortSource(src) {
+    if (!src) return '—';
+    if (src.startsWith('http')) {
+        const m = src.match(/(?:v=|youtu\.be\/)([\w-]{6,})/);
+        return m ? 'youtu.be/' + m[1] : src.slice(0, 40);
+    }
+    return src.split(/[/\\]/).pop();
+}
+const STATUS_BADGE = {
+    pending: { text: 'Queued', cls: 'bg-[#E8DFF0] text-[#5B2A86]' },
+    running: { text: 'Running', cls: 'bg-[#FFE9C7] text-[#855300]' },
+    done:    { text: 'Done', cls: 'bg-[#D5F0EE] text-[#0E7C7C]' },
+    error:   { text: 'Failed', cls: 'bg-[#F9DAD7] text-[#B3261E]' },
+};
+function renderQueue(jobs) {
+    const panel = $('queuePanel');
+    if (!panel) return;
+    const count = jobs.length;
+    $('queueCount').textContent = count ? count + ' job' + (count > 1 ? 's' : '') : '';
+    panel.classList.toggle('hidden', count === 0);
+
+    const list = $('queueList');
+    list.innerHTML = '';
+    jobs.forEach((j) => {
+        const badge = STATUS_BADGE[j.status] || STATUS_BADGE.pending;
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-3 border-t border-line py-3';
+        const isPending = j.status === 'pending';
+        row.innerHTML =
+            '<div class="flex min-w-0 flex-1 items-center gap-3">'
+            + '<span class="flex-none rounded-full px-2.5 py-1 text-xs font-semibold ' + badge.cls + '">' + badge.text + '</span>'
+            + '<div class="min-w-0 flex-1">'
+            + '<div class="truncate text-sm font-medium">' + shortSource(j.source) + '</div>'
+            + '<div class="text-xs text-muted">' + (j.lyric || 'no lyric') + ' · ' + j.model + '</div>'
+            + '</div></div>'
+            + (isPending
+                ? '<button class="qcancel flex-none rounded-full px-3 py-1.5 text-xs font-semibold text-err border border-line hover:bg-[#F9DAD7] transition">Cancel</button>'
+                : j.status === 'done' && j.result
+                    ? '<a class="flex-none rounded-full bg-ink px-4 py-1.5 text-xs font-semibold text-cream hover:bg-[#43275f] transition" href="/ttml/' + encodeURIComponent(j.result) + '" download="' + j.result + '">Download</a>'
+                    : '')
+            + (j.status === 'error'
+                ? '<span class="flex-none text-xs text-err max-w-[200px] truncate" title="' + (j.error || '').replace(/"/g, '&quot;') + '">' + (j.error || '') + '</span>'
+                : '');
+        if (isPending) {
+            row.querySelector('.qcancel').addEventListener('click', () => cancelJob(j.id));
+        }
+        list.appendChild(row);
+    });
+
+    const hasFinished = jobs.some(j => j.status === 'done' || j.status === 'error');
+    const clearBtn = $('btnClearQueue');
+    if (clearBtn) clearBtn.classList.toggle('hidden', !hasFinished);
+}
+async function cancelJob(id) {
+    try {
+        await fetch('/api/queue/' + id, { method: 'DELETE' });
+        pollStatus();
+    } catch (e) { /* ignore */ }
+}
+async function clearFinishedJobs() {
+    try {
+        await fetch('/api/queue/clear', { method: 'POST' });
+        pollStatus();
+    } catch (e) { /* ignore */ }
 }
 
 /* ---------- result + list ---------- */
@@ -203,7 +294,7 @@ function renderResults(items) {
     items.forEach((it) => {
         const row = document.createElement('div');
         row.className = 'flex items-center gap-3.5 border-t border-line py-3.5';
-        row.innerHTML = '<svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true" class="flex-none"><circle cx="15" cy="15" r="14" fill="#F59E0B"/><circle cx="15" cy="15" token="8" fill="none" stroke="#E48A06" stroke-width="2"/><circle cx="15" cy="15" r="3" fill="#FFF6E5"/></svg>'
+        row.innerHTML = '<svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true" class="flex-none"><circle cx="15" cy="15" r="14" fill="#F59E0B"/><circle cx="15" cy="15" r="8" fill="none" stroke="#E48A06" stroke-width="2"/><circle cx="15" cy="15" r="3" fill="#FFF6E5"/></svg>'
             + '<div class="min-w-0 flex-1"><div class="name text-base font-medium [overflow-wrap:anywhere]"></div><div class="date text-[13px] text-muted"></div></div>'
             + '<a class="dl flex h-11 w-11 flex-none items-center justify-center rounded-full border border-line transition hover:bg-cream"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg></a>';
         row.querySelector('.name').textContent = it.name;
@@ -218,7 +309,7 @@ async function refreshResults() {
     try { renderResults(await (await fetch('/api/results')).json()); } catch (e) { /* ignore */ }
 }
 
-/* ---------- generate ---------- */
+/* ---------- generate (enqueue) ---------- */
 btnGenerate.addEventListener('click', async () => {
     touched = { media: true, lyric: true }; updateGenerateState();
     if (btnGenerate.disabled) return;
@@ -229,13 +320,21 @@ btnGenerate.addEventListener('click', async () => {
         title: $('override-title').value.trim(), prompt: $('whisper-prompt').value.trim(),
         separate_vocals: $('toggle-demucs').checked,
     };
-    setRunning(true); resetOutput(); startedAt = Date.now(); setStatus('run', 'Running');
+    setRunning(true);
     try {
         const json = await (await fetch('/api/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })).json();
         if (!json.ok) {
-            setRunning(false); setStatus('error', 'Failed'); setProgress(0, 'Could not start.');
+            setRunning(false); setStatus('error', 'Failed'); setProgress(0, 'Could not add to queue.');
             $('errorText').textContent = json.error; $('errorBox').classList.remove('hidden'); return;
         }
+        // Reset form for next entry
+        mediaUrl.value = '';
+        if ($('override-title')) $('override-title').value = '';
+        updateGenerateState();
+        setRunning(false);
+        setStatus('idle', 'Added to queue');
+        // Start polling to show live progress + queue
+        resetOutput(); startedAt = Date.now();
         startPolling();
     } catch (e) {
         setRunning(false); setStatus('error', 'Failed');
@@ -244,9 +343,19 @@ btnGenerate.addEventListener('click', async () => {
 });
 
 /* ---------- init ---------- */
+const btnClearQueue = $('btnClearQueue');
+if (btnClearQueue) btnClearQueue.addEventListener('click', clearFinishedJobs);
 const initialResults = $('initialResults');
 if (initialResults && $('resultsList')) renderResults(JSON.parse(initialResults.textContent || '[]'));
 updateGenerateState();
-fetch('/api/status').then((r) => r.json()).then((s) => {   // resume display if page is reloaded while a process is running
-    if (s.running) { startedAt = Date.now(); resetOutput(); setRunning(true); setStatus('run', 'Running'); startPolling(); }
+// Resume polling if queue has active jobs on page load
+fetch('/api/queue').then((r) => r.json()).then((s) => {
+    if (s.queue.length > 0) {
+        const hasActive = s.queue.some(j => j.status === 'running' || j.status === 'pending');
+        if (hasActive) {
+            startedAt = Date.now(); resetOutput(); startPolling();
+        } else {
+            renderQueue(s.queue);
+        }
+    }
 }).catch(() => {});
