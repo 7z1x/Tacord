@@ -63,6 +63,8 @@ This distribution of Tacord consists of the following files and directories:
 - **lyric/** — directory for imported lyric files (`.txt`, `.lrc`) and generated drafts.
 - **ttml/** — output directory for generated `.ttml` files.
 
+> **Note:** The contents of `lyric/` and `ttml/` are **stored locally only**. These files are ignored by Git and are never pushed to the GitHub repository — only each folder's `README.md` is tracked. The same applies to `audio/`, which holds the downloaded WAV cache.
+
 ---
 
 ## Requirements
