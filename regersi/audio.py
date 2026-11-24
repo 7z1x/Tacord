@@ -130,7 +130,8 @@ def trim_audio(audio: Path, work: Path, start: float, buffer: float = 5.0) -> Pa
         return trimmed
     ss = max(0.0, start - buffer)
     subprocess.run(
-        ["ffmpeg", "-y", "-ss", str(ss), "-i", str(audio), "-c", "copy", str(trimmed)],
+        ["ffmpeg", "-y", "-ss", str(ss), "-i", str(audio),
+         "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", str(trimmed)],
         check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
     )
     return trimmed

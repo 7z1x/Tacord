@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 from regersi import BASE
-from regersi.ai import load_model, align, transcribe
+from regersi.ai import load_model, align, align_segmented, transcribe
 from regersi.audio import get_audio, separate_vocals, parse_time, _slug
 from regersi.cli import parser
 from regersi.lyrics import read_lyrics
@@ -67,7 +67,14 @@ def run():
             print("WARNING: the lyric file still contains (?) marks and they will be included in the TTML. "
                   "Remove them after reviewing.")
         print(f"Aligning {len(lyrics)} lines from {lyric_path.name} with audio...")
-        lines = align(model, audio, lyrics, args.language, prompt=args.prompt)
+        if args.segmented:
+            print("Using SEGMENTED alignment (per vocal region)...")
+            lines = align_segmented(
+                model, audio, lyrics, args.language, prompt=args.prompt,
+                merge_gap=args.merge_gap,
+            )
+        else:
+            lines = align(model, audio, lyrics, args.language, prompt=args.prompt)
         if args.verify:
             from regersi.ai import verify_alignment
             print("Verifying alignment against audio (transcribe + vocal map)...")
@@ -94,7 +101,14 @@ def run():
         if any("(?)" in l for l in lyrics):
             print("WARNING: fetched lyrics contain (?) uncertain words — review before relying on them.")
         print(f"Aligning {len(lyrics)} fetched lines with audio...")
-        lines = align(model, audio, lyrics, args.language, prompt=args.prompt)
+        if args.segmented:
+            print("Using SEGMENTED alignment (per vocal region)...")
+            lines = align_segmented(
+                model, audio, lyrics, args.language, prompt=args.prompt,
+                merge_gap=args.merge_gap,
+            )
+        else:
+            lines = align(model, audio, lyrics, args.language, prompt=args.prompt)
         if args.verify:
             from regersi.ai import verify_alignment
             print("Verifying alignment against audio (transcribe + vocal map)...")

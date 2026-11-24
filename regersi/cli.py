@@ -30,6 +30,13 @@ def parser():
                     help="audio cache directory (default: audio/)")
     ap.add_argument("--prompt", default=None,
                     help="initial prompt for Whisper (e.g. 'Indonesian lyrics with Papuan dialect')")
+    ap.add_argument("--segmented", action="store_true",
+                    help="segmented alignment: transcribe first to locate vocal regions, then align "
+                         "each region separately. Solves long instrumental gaps and dense mixes. "
+                         "Recommended for songs with random structure (intro instrument, vocals, gap, vocals).")
+    ap.add_argument("--merge-gap", type=float, default=6.0,
+                    help="segmented mode: merge vocal segments within N seconds into one region "
+                         "(default: 6.0). Larger = fewer, bigger regions; smaller = more regions.")
     ap.add_argument("--start-from", default=None,
                     help="start time of the main lyrics, format ss.mmm or mm:ss.mmm or hh:mm:ss.mmm")
     ap.add_argument("--title", default=None,

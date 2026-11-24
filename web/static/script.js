@@ -321,6 +321,8 @@ btnGenerate.addEventListener('click', async () => {
         separate_vocals: $('toggle-demucs').checked,
         verify: $('toggle-verify') ? $('toggle-verify').checked : false,
         fetch_lyrics: $('toggle-fetch') ? $('toggle-fetch').checked : false,
+        segmented: $('toggle-segmented') ? $('toggle-segmented').checked : false,
+        merge_gap: 6.0,
     };
     setRunning(true);
     try {

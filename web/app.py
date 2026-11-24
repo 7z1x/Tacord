@@ -129,6 +129,10 @@ def run_job_process(job):
             cmd.extend(["--start-from", data["start_from"]])
         if data.get("prompt"):
             cmd.extend(["--prompt", data["prompt"]])
+        if data.get("segmented"):
+            cmd.append("--segmented")
+        if data.get("merge_gap") is not None:
+            cmd.extend(["--merge-gap", str(data["merge_gap"])])
         if data.get("title"):
             cmd.extend(["--title", data["title"]])
 

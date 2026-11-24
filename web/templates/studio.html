@@ -92,6 +92,7 @@
 
             <div class="flex flex-col">
                 {{ toggle('toggle-demucs', 'Separate vocals (Demucs)', 'Isolate vocals from music for more accurate transcription.') }}
+                {{ toggle('toggle-segmented', 'Segmented alignment (auto-detect gaps)', 'Transcribe first to locate every vocal region, then align each region separately. Best for songs with instrumental intros/breaks or random structure. Solves misaligned lines caused by long gaps.') }}
                 {{ toggle('toggle-verify', 'Verify alignment', 'After aligning your lyric, transcribe the audio to detect vocal regions and flag lines placed over instrumentals/silence with (?). Slower (extra transcribe pass).') }}
                 {{ toggle('toggle-fetch', 'Fetch lyrics if empty', 'When no lyric file is selected, use the 9router LLM to search for lyrics online (raplib.com etc.) based on the video title, then align them instead of producing a draft.') }}
             </div>
