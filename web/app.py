@@ -117,22 +117,12 @@ def run_job_process(job):
 
         if data.get("lyric"):
             cmd.extend(["--lyric", data["lyric"]])
-        if data.get("separate_vocals"):
-            cmd.append("--separate-vocals")
-        if data.get("verify"):
-            cmd.append("--verify")
-        if data.get("fetch_lyrics"):
-            cmd.append("--fetch-lyrics")
         if data.get("offset"):
             cmd.extend(["--offset", str(data["offset"])])
         if data.get("start_from"):
             cmd.extend(["--start-from", data["start_from"]])
         if data.get("prompt"):
             cmd.extend(["--prompt", data["prompt"]])
-        if data.get("segmented"):
-            cmd.append("--segmented")
-        if data.get("merge_gap") is not None:
-            cmd.extend(["--merge-gap", str(data["merge_gap"])])
         if data.get("title"):
             cmd.extend(["--title", data["title"]])
 
@@ -256,7 +246,6 @@ def api_queue():
                 "source": j["data"].get("source", ""),
                 "lyric": j["data"].get("lyric") or "",
                 "model": j["data"].get("model", "large-v3-turbo"),
-                "separate_vocals": j["data"].get("separate_vocals", False),
                 "result": j["result"],
                 "error": j["error"],
                 "added_at": j["added_at"],

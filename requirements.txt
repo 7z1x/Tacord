@@ -1,7 +1,4 @@
 yt-dlp
 stable-ts
-demucs
 soundfile
 flask
-python-dotenv
-requests

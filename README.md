@@ -33,10 +33,9 @@ Tacord ships with a **built-in web Studio** (`http://127.0.0.1:5000/studio`) so 
 ### How it works
 
 1. **Audio input** — Provide a YouTube URL or a local audio file (mp3/wav/m4a). Tacord uses [yt-dlp](https://github.com/yt-dlp/yt-dlp) to download and convert the audio to WAV.
-2. **Lyric input** — Either import your own lyric file (`.txt` / `.lrc`, one line per lyric line), let Whisper transcribe the audio and produce a draft, or **fetch lyrics from the web** (`--fetch-lyrics`) using the 9router LLM.
-3. **Alignment** — When a lyric file is provided (or fetched), Whisper **aligns** the known text to the audio, producing precise word-level timestamps. When no lyric is provided, Whisper **transcribes** the audio from scratch.
-4. **Verification (optional)** — With `--verify`, Tacord transcribes the audio to build a "vocal map" and flags aligned lines that fall over instrumentals/silence with `(?)`.
-5. **Output** — The result is written as a `.ttml` file in the `ttml/` directory, ready for Spicetify, Apple Music, or AMLL.
+2. **Lyric input** — Either import your own lyric file (`.txt` / `.lrc`, one line per lyric line) or let Whisper transcribe the audio and produce a draft.
+3. **Alignment** — When a lyric file is provided, Whisper **aligns** the known text to the audio, producing precise word-level timestamps. When no lyric is provided, Whisper **transcribes** the audio from scratch.
+4. **Output** — The result is written as a `.ttml` file in the `ttml/` directory, ready for Spicetify, Apple Music, or AMLL.
 
 ---
 
@@ -48,11 +47,10 @@ This distribution of Tacord consists of the following files and directories:
 - **[requirements.txt](requirements.txt)** — the Python dependencies required to run Tacord.
 - **[regersi/](regersi/)** — the core engine, a subdirectory containing the full source code:
   - `lyric2ttml.py` — CLI entry point.
-  - `main.py` — orchestrator: ties together audio download, lyric loading/fetching, alignment, verification, and TTML export.
-  - `audio.py` — YouTube download via yt-dlp, WAV conversion, optional vocal separation (Demucs), and audio trimming.
-  - `ai.py` — Whisper model loading, lyric-to-audio alignment, transcription, and alignment verification (vocal-map).
+  - `main.py` — orchestrator: ties together audio download, lyric loading, alignment, and TTML export.
+  - `audio.py` — YouTube download via yt-dlp, WAV conversion, and audio trimming.
+  - `ai.py` — Whisper model loading, lyric-to-audio alignment, and transcription.
   - `lyrics.py` — lyric file parsing (strips `[Verse]` tags and blank lines) and word-to-line mapping.
-  - `lyric_fetch.py` — web lyric fetching via the 9router LLM (raplib.com, musixmatch, genius) with LLM fallback.
   - `ttml.py` — TTML document construction and timestamp tidying.
   - `cli.py` — argparse definitions for all command-line options.
 - **[web/](web/)** — the Flask web application:
@@ -79,11 +77,8 @@ This distribution of Tacord consists of the following files and directories:
 |---|---|
 | [yt-dlp](https://github.com/yt-dlp/yt-dlp) | Download audio from YouTube |
 | [stable-ts](https://github.com/jianfcheng/stable-ts) | Whisper-based transcription & alignment |
-| [demucs](https://github.com/facebookresearch/demucs) | Optional vocal isolation for better accuracy |
 | [soundfile](https://github.com/bastibe/python-soundfile) | Audio file I/O |
 | [flask](https://flask.palletsprojects.com/) | Web Studio UI |
-| [requests](https://docs.python-requests.org/) | Web lyric fetching |
-| [python-dotenv](https://github.com/theskumar/python-dotenv) | Load 9router LLM config from `.env` |
 
 ---
 
@@ -132,9 +127,8 @@ From the Studio you can:
 1. Paste a **YouTube URL** or a path to a local audio file.
 2. Select or **import a lyric file** (`.txt` / `.lrc`). If none is provided, Whisper will transcribe the audio and produce a draft.
 3. Pick a **Whisper model** (`tiny` → `large-v3-turbo`). Larger models are more accurate but slower.
-4. Toggle **vocal isolation** (Demucs) for cleaner alignment on dense mixes.
-5. Click **Generate TTML**. Progress and logs stream live in the terminal panel.
-6. Download the resulting `.ttml` file, or review all past outputs under **Riwayat**.
+4. Click **Generate TTML**. Progress and logs stream live in the terminal panel.
+5. Download the resulting `.ttml` file, or review all past outputs under **Riwayat**.
 
 ### Option B — Command Line
 
@@ -147,9 +141,6 @@ python regersi/lyric2ttml.py "https://www.youtube.com/watch?v=..."
 
 # Use a local audio file instead of YouTube
 python regersi/lyric2ttml.py "C:\music\mysong.mp3" --lyric mysong.txt
-
-# Separate vocals first for better accuracy on dense mixes
-python regersi/lyric2ttml.py "https://www.youtube.com/watch?v=..." --lyric mysong.txt --separate-vocals
 
 # Trim audio to start from a specific timestamp
 python regersi/lyric2ttml.py "https://www.youtube.com/watch?v=..." --lyric mysong.txt --start-from 00:12.500
@@ -167,9 +158,6 @@ python regersi/lyric2ttml.py "https://www.youtube.com/watch?v=..." --lyric myson
 | `-o`, `--out` | Output `.ttml` filename (without folder = saved to `ttml/`). |
 | `-m`, `--model` | Whisper model: `tiny`, `base`, `small`, `medium`, `large-v3`, `large-v3-turbo` *(default)*. |
 | `--language` | Language code *(default: `id`)*. |
-| `--separate-vocals` | Isolate vocals from instrumentals using Demucs (slower but more accurate). |
-| `--verify` | After aligning, transcribe the audio to detect vocal regions and flag lines placed over instrumentals/silence with `(?)`. |
-| `--fetch-lyrics` | When no `--lyric` is given, fetch lyrics from the web (raplib.com etc.) using the 9router LLM to interpret the video title. Saved to `lyric/` and aligned to the audio. |
 | `--offset` | Shift all timestamps by N seconds (e.g. `-2.5` or `1.2`). |
 | `--start-from` | Start time of the lyrics, format `ss.mmm`, `mm:ss.mmm`, or `hh:mm:ss.mmm`. |
 | `--title` | Override the cache folder name and output filename. |
@@ -206,7 +194,6 @@ Tacord is built on top of several outstanding open-source projects:
 - **[stable-ts](https://github.com/jianfcheng/stable-ts)** — the stable Whisper implementation that powers transcription and alignment.
 - **[OpenAI Whisper](https://github.com/openai/whisper)** — the foundational speech recognition model.
 - **[yt-dlp](https://github.com/yt-dlp/yt-dlp)** — the audio downloader that makes YouTube sourcing possible.
-- **[Demucs](https://github.com/facebookresearch/demucs)** — Facebook Research's vocal separation engine.
 - **[Flask](https://flask.palletsprojects.com/)** — the lightweight web framework powering the Studio UI.
 
 TTML output follows the format expected by **[Spicetify](https://spicetify.app/)** and **[AMLL (Apple Music Like Lyrics)](https://github.com/Steve-Mr/AppleMusicLikeLyrics)**.

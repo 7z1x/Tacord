@@ -5,8 +5,8 @@ let pollTimer = null, running = false, rendered = 0, lineTimes = [], startedAt =
 const ALLOWED_LYRIC_EXT = new Set(['.txt', '.lrc']);
 
 const STAGES = [
-    [/Audio ready/, 20], [/Trimming audio/, 25], [/Separating vocals/, 35], [/Loading model/, 45],
-    [/Fetching lyrics|Clean title/, 55], [/Aligning|transcribing/, 75], [/Verifying/, 90], [/Done:/, 100],
+    [/Audio ready/, 20], [/Trimming audio/, 25], [/Loading model/, 45],
+    [/Aligning|transcribing/, 75], [/Done:/, 100],
 ];
 
 /* ---------- state helpers ---------- */
@@ -318,11 +318,6 @@ btnGenerate.addEventListener('click', async () => {
         source: mediaUrl.value.trim(), lyric: lyricVal, model: $('whisper-model').value,
         offset: $('offset-input').value.trim(), start_from: $('start-time-input').value.trim(),
         title: $('override-title').value.trim(), prompt: $('whisper-prompt').value.trim(),
-        separate_vocals: $('toggle-demucs').checked,
-        verify: $('toggle-verify') ? $('toggle-verify').checked : false,
-        fetch_lyrics: $('toggle-fetch') ? $('toggle-fetch').checked : false,
-        segmented: $('toggle-segmented') ? $('toggle-segmented').checked : false,
-        merge_gap: 6.0,
     };
     setRunning(true);
     try {

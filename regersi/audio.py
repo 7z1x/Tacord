@@ -107,21 +107,6 @@ def get_audio(source: str, cache: Path, cookies: str = None, args_title: str = N
     return wav, title, work
 
 
-def separate_vocals(audio: Path, work: Path) -> Path:
-    found = list(work.glob("sep/*/*/vocals.wav"))
-    if found:
-        return found[0]
-    try:
-        subprocess.run(
-            [sys.executable, "-m", "demucs", "--two-stems=vocals",
-             "-o", str(work / "sep"), str(audio)],
-            check=True,
-        )
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        sys.exit("demucs failed / not installed. Run: pip install demucs")
-    return next(work.glob("sep/*/*/vocals.wav"))
-
-
 def trim_audio(audio: Path, work: Path, start: float, buffer: float = 5.0) -> Path:
     """Cut audio from (start - buffer) seconds, then add the offset to args."""
     import subprocess

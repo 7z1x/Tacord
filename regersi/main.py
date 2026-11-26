@@ -3,8 +3,8 @@ import sys
 from pathlib import Path
 
 from regersi import BASE
-from regersi.ai import load_model, align, align_segmented, transcribe
-from regersi.audio import get_audio, separate_vocals, parse_time, _slug
+from regersi.ai import load_model, align, transcribe
+from regersi.audio import get_audio, parse_time, _slug
 from regersi.cli import parser
 from regersi.lyrics import read_lyrics
 from regersi.ttml import build_ttml, fmt_time, tidy
@@ -49,10 +49,6 @@ def run():
         audio = trim_audio(audio, work, start)
         trim_offset = max(0.0, start - 5.0)
 
-    if args.separate_vocals:
-        print("Separating vocals...")
-        audio = separate_vocals(audio, work)
-
     print(f"Loading model '{args.model}'...")
     try:
         model = load_model(args.model)
@@ -67,61 +63,7 @@ def run():
             print("WARNING: the lyric file still contains (?) marks and they will be included in the TTML. "
                   "Remove them after reviewing.")
         print(f"Aligning {len(lyrics)} lines from {lyric_path.name} with audio...")
-        if args.segmented:
-            print("Using SEGMENTED alignment (per vocal region)...")
-            lines = align_segmented(
-                model, audio, lyrics, args.language, prompt=args.prompt,
-                merge_gap=args.merge_gap,
-            )
-        else:
-            lines = align(model, audio, lyrics, args.language, prompt=args.prompt)
-        if args.verify:
-            from regersi.ai import verify_alignment
-            print("Verifying alignment against audio (transcribe + vocal map)...")
-            lines, flagged, vocal_map = verify_alignment(
-                model, audio, lines, args.language, prompt=args.prompt
-            )
-            if flagged:
-                print(f"Verification: {len(flagged)} line(s) flagged with (?) — likely placed over non-vocal sections:")
-                for idx, t, text in flagged:
-                    print(f"  Line {idx + 1} @ {fmt_time(t)}: \"{text}\"")
-                print("Review these lines; they may need manual timing correction.")
-            else:
-                print("Verification: all lines fall within detected vocal regions. No anomalies.")
-    elif args.fetch_lyrics:
-        # No lyric file provided — try to fetch lyrics from the web via the LLM.
-        from regersi.lyric_fetch import fetch_lyrics, save_fetched_lyrics
-        fetched = fetch_lyrics(title)
-        if not fetched:
-            sys.exit("Lyric fetch failed and no lyric file was provided. "
-                     "Run again with --lyric, or check the song title.")
-        lyric_path = save_fetched_lyrics(fetched, _slug_title(args.title or title))
-        print(f"Saved fetched lyrics to: {lyric_path}")
-        lyrics = fetched
-        if any("(?)" in l for l in lyrics):
-            print("WARNING: fetched lyrics contain (?) uncertain words — review before relying on them.")
-        print(f"Aligning {len(lyrics)} fetched lines with audio...")
-        if args.segmented:
-            print("Using SEGMENTED alignment (per vocal region)...")
-            lines = align_segmented(
-                model, audio, lyrics, args.language, prompt=args.prompt,
-                merge_gap=args.merge_gap,
-            )
-        else:
-            lines = align(model, audio, lyrics, args.language, prompt=args.prompt)
-        if args.verify:
-            from regersi.ai import verify_alignment
-            print("Verifying alignment against audio (transcribe + vocal map)...")
-            lines, flagged, vocal_map = verify_alignment(
-                model, audio, lines, args.language, prompt=args.prompt
-            )
-            if flagged:
-                print(f"Verification: {len(flagged)} line(s) flagged with (?) — likely placed over non-vocal sections:")
-                for idx, t, text in flagged:
-                    print(f"  Line {idx + 1} @ {fmt_time(t)}: \"{text}\"")
-                print("Review these lines; they may need manual timing correction.")
-            else:
-                print("Verification: all lines fall within detected vocal regions. No anomalies.")
+        lines = align(model, audio, lyrics, args.language)
     else:
         print("No lyric file provided, AI is transcribing text from audio (result = draft)...")
         try:
